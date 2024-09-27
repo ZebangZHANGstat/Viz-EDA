@@ -1,0 +1,224 @@
+---
+title: "Data Visualiztion"
+output: github_document
+---
+
+```{r}
+library(tidyverse)
+library(ggridges)
+```
+
+```{r}
+weather_df = 
+  rnoaa::meteo_pull_monitors(
+    c("USW00094728", "USW00022534", "USS0023B17S"),
+    var = c("PRCP", "TMIN", "TMAX"), 
+    date_min = "2021-01-01",
+    date_max = "2022-12-31") |>
+  mutate(
+    name = case_match(
+      id, 
+      "USW00094728" ~ "CentralPark_NY", 
+      "USW00022534" ~ "Molokai_HI",
+      "USS0023B17S" ~ "Waterhole_WA"),
+    tmin = tmin / 10,
+    tmax = tmax / 10) |>
+  select(name, id, everything())
+
+```
+
+```{r}
+ggplot(weather_df, aes(x = tmin, y = tmax))
+```
+
+```{r}
+ggplot(weather_df, aes(x = tmin, y = tmax)) + 
+  geom_point()
+
+weather_df |>
+  ggplot(aes(x = tmin, y = tmax)) + 
+  geom_point(color='blue')
+```
+
+```{r}
+ weather_df %>%
+  filter(is.na(tmin) | is.na(tmax))
+```
+
+```{r}
+gg_weather_scatterplot = 
+  weather_df |>
+  ggplot(aes(x = tmin, y = tmax)) + 
+  geom_point()
+
+gg_weather_scatterplot
+```
+
+```{r}
+ggplot(weather_df, aes(x = tmin, y = tmax)) + 
+  geom_point(aes(color = name))
+```
+
+
+```{r}
+weather_df |>
+  ggplot(aes(x = tmin, y = tmax, color=name)) + 
+  geom_point(alpha=0.3, size=0.8)+
+  geom_smooth(se = FALSE)
+
+weather_df |>
+  ggplot(aes(x = tmin, y = tmax, color=name)) + 
+  geom_point(alpha=0.3, size=0.8)+
+  geom_smooth(se = TRUE)
+```
+
+```{r}
+ggplot(weather_df, aes(x = tmin, y = tmax, color = name)) + 
+  geom_point(alpha = .5) +
+  geom_smooth(se = FALSE) + 
+  facet_grid(. ~ name)
+
+#.表示row上无分类
+#~后面有name表示列上用name分类
+```
+
+```{r}
+#建议以后，按类别分color就把color=name加在ggplot的aes()里面
+#但是如果要按另一种变量的大小画散点的大小就把size=prcp加在geom_point的aes()里面
+
+ggplot(weather_df, aes(x = date, y = tmax, color = name)) + 
+  geom_point(aes(size = prcp), alpha = .5) +
+  geom_smooth(se = FALSE)
+
+ggplot(weather_df, aes(x = date, y = tmax, color = name)) + 
+  geom_point(aes(size = prcp), alpha = .5) +
+  geom_smooth(se = FALSE) + 
+  facet_grid(. ~ name)
+```
+
+```{r}
+weather_df |> 
+  filter(name == "CentralPark_NY") |> 
+  mutate(
+    tmax_fahr = tmax * (9 / 5) + 32,
+    tmin_fahr = tmin * (9 / 5) + 32) |> 
+  ggplot(aes(x = tmin_fahr, y = tmax_fahr)) +
+  geom_point(alpha = .5) + 
+  geom_smooth(method = "lm", se = FALSE)
+```
+
+```{r}
+ggplot(weather_df, aes(x = date, y = tmax, color = name)) + 
+  geom_smooth(se = FALSE)
+```
+
+```{r}
+ggplot(weather_df, aes(x = tmax, y = tmin)) + 
+  geom_hex()
+```
+
+```{r}
+#这里注意一下区别
+
+#这两个是一样的，建议第一种
+ggplot(weather_df,aes(x = tmax, y = tmin)) + geom_point(color = "blue")
+ggplot(weather_df) + geom_point(aes(x = tmax, y = tmin), color = "blue")
+#如果是指定散点的颜色而不是按分类画颜色，就不要把color = "blue"加在aes()参数里
+ggplot(weather_df) + geom_point(aes(x = tmax, y = tmin, color = "blue"))
+```
+
+```{r}
+ggplot(weather_df, aes(x = tmax)) + 
+  geom_histogram()
+
+ggplot(weather_df, aes(x = tmax, fill=name)) +  #使用了fill=name来按类别填充颜色
+  geom_histogram()  #使用默认的 position = "stack"
+
+#position = 'dodge'会将不同类别的直方图并排显示，而非像position = "stack"堆叠在一起
+ggplot(weather_df, aes(x = tmax, fill=name)) + 
+  geom_histogram(position = 'dodge')
+
+#还可以指定箱宽
+ggplot(weather_df, aes(x = tmax, fill=name)) + 
+  geom_histogram(position = 'dodge',binwidth = 2)
+```
+
+```{r}
+ggplot(weather_df, aes(x = tmax, fill=name)) + 
+  geom_histogram()+
+  facet_grid(. ~name)
+```
+
+```{r}
+ggplot(weather_df, aes(x = tmax, fill = name)) + 
+  geom_density(alpha = .3, color = "blue")
+#geom_density(alpha = .4, adjust = .5, color = "blue")
+```
+
+```{r}
+ggplot(weather_df, aes(x = name, y = tmin,fill=name)) + 
+  geom_boxplot()
+
+ggplot(weather_df, aes(x = name, y = tmin,color=name)) + 
+  geom_boxplot()
+```
+
+```{r}
+#violin plot
+ggplot(weather_df, aes(x = name, y = tmax)) + 
+  geom_violin(aes(fill = name), alpha = .5)
+
+ggplot(weather_df, aes(x = name, y = tmax)) + 
+  geom_violin(aes(fill = name), alpha = .5) + 
+  stat_summary(fun = "median", color = "blue")
+```
+
+```{r}
+ggplot(weather_df, aes(x = tmin, y = name)) + 
+  geom_density_ridges()
+
+ggplot(weather_df, aes(x = tmin, y = name)) + 
+  geom_density_ridges(scale = .85)
+```
+
+# make a comparision betweens the different kinds of plots
+
+```{r}
+ggplot(weather_df, aes(x = prcp)) + 
+  geom_density(aes(fill = name), alpha = .5) 
+```
+
+```{r}
+ggplot(weather_df, aes(x = prcp, y = name)) + 
+  geom_density_ridges()
+```
+
+```{r}
+ggplot(weather_df, aes(y = prcp, x = name)) + 
+  geom_boxplot() 
+```
+
+```{r}
+#可以结合filter让图稍微好看点
+weather_df |> 
+  filter(10<prcp, prcp<1000) |> 
+  ggplot(aes(x = prcp, y = name)) + 
+  geom_density_ridges(scale = .85)
+
+weather_df |> 
+  filter(10<prcp, prcp<1000) |> 
+  ggplot(aes(x = prcp, fill = name)) + 
+  geom_density(alpha=0.3)
+```
+
+```{r}
+#如果要存图最好让图有变量名
+
+ggp_weather = 
+  ggplot(weather_df, aes(x = tmin, y = tmax)) + 
+  geom_point(aes(color = name), alpha = .5) 
+ggp_weather
+
+#ggsave("ggp_weather.pdf", ggp_weather, width = 8, height = 5)
+#ggsave("plots/ggp_weather.pdf", ggp_weather, width = 8, height = 5)
+```
